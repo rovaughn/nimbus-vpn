@@ -72,6 +72,10 @@ func (m Message) Open(out []byte, sharedKey *[32]byte) ([]byte, bool) {
 	return box.OpenAfterPrecomputation(out, []byte(m)[24:], &nonce, sharedKey)
 }
 
+func (m Message) Nonce() []byte {
+	return []byte(m)[:24]
+}
+
 func CopyMessage(in []byte) Message {
 	new := make([]byte, len(in))
 	copy(new, in)
@@ -136,6 +140,7 @@ func main() {
 		Address    *net.UDPAddr
 		Conn       *net.UDPConn
 		UseWriteTo bool
+		SentNonce  map[string]bool
 	}
 
 	identityByName := make(map[string]*Identity)
@@ -162,6 +167,7 @@ func main() {
 			Address:    addr,
 			Conn:       conn,
 			UseWriteTo: false,
+			SentNonce:  make(map[string]bool),
 		})
 	}
 
@@ -196,8 +202,16 @@ func main() {
 					remoteConns = append(remoteConns, newRemote)
 				}
 			case message := <-routeMessage:
-				log.Println("Routing new message")
+				nonceStr := string(message.Nonce())
+
 				for _, remoteConn := range remoteConns {
+					if remoteConn.SentNonce[nonceStr] {
+						continue
+					}
+
+					remoteConn.SentNonce[nonceStr] = true
+
+					log.Printf("Sending message %x to %s", nonceStr, remoteConn.Address)
 					if remoteConn.UseWriteTo {
 						if _, err := remoteConn.Conn.WriteToUDP([]byte(message), remoteConn.Address); err != nil {
 							log.Println("Sending message:", err)
@@ -248,6 +262,8 @@ func main() {
 			var sharedKey [32]byte
 			box.Precompute(&sharedKey, (*[32]byte)(&contactPublicKey), (*[32]byte)(&identitySecretKey))
 
+			log.Printf("Tunnel %s (%s) is ready", tun.Name(), tunnel.Address)
+
 			go func() {
 				in := make([]byte, 2048)
 				out := make([]byte, 2048)
@@ -268,13 +284,13 @@ func main() {
 						panic(err)
 					}
 
-					log.Println("tunnel received packet")
-
 					if translateIP != nil {
 						if err := parser.DecodeLayers(in[:n], &decoded); err != nil {
-							log.Println("Decoding packet:", err)
+							log.Println("Decoding packet into tun:", err)
 							continue
 						}
+
+						log.Printf("Incoming packet %s -> %s", ip4.SrcIP, ip4.DstIP)
 
 						ip4.DstIP = translateIP
 
@@ -311,18 +327,24 @@ func main() {
 						continue
 					}
 
+					log.Printf("Message %x leaving tunnel %s", message.Nonce(), tunnel.Address)
+
 					if translateIP != nil {
 						if err := parser.DecodeLayers(out, &decoded); err != nil {
-							log.Println("Decoding packet:", err)
+							log.Println("Decoding packet out of tun:", err)
 							continue
 						}
 
+						log.Printf("Packet is %s -> %s", ip4.SrcIP, ip4.DstIP)
+
 						if !ip4.SrcIP.Equal(translateIP) {
-							log.Println("Packet leaving tunnel has wrong remote address")
+							log.Println("Expected packet to have address %s not %s", translateIP, ip4.SrcIP)
 							continue
 						}
 
 						ip4.SrcIP = untranslatedIP
+
+						log.Printf("Packet is now %s:%d -> %s:%d", ip4.SrcIP, udp.SrcPort, ip4.DstIP, udp.DstPort)
 
 						if err := gopacket.SerializeLayers(buf, opts, &ip4, &udp, &payload); err != nil {
 							log.Println("Serializing packet:", err)
@@ -360,6 +382,8 @@ func main() {
 
 			in := make([]byte, 2048)
 
+			log.Printf("Listener %s is ready", listener.Address)
+
 			for {
 				n, remoteAddr, err := conn.ReadFromUDP(in)
 				if err != nil {
@@ -370,6 +394,7 @@ func main() {
 					Address:    remoteAddr,
 					Conn:       conn,
 					UseWriteTo: true,
+					SentNonce:  make(map[string]bool),
 				}
 				routeMessage <- CopyMessage(in[:n])
 			}

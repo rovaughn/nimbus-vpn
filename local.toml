@@ -24,11 +24,13 @@ Address = "localhost:8000"
 
 [[Tunnel]]
 Address = "12.0.0.0"
+Translate = "10.0.0.116"
 Identity = "alec"
 Contact = "jd"
 
 [[Tunnel]]
 Address = "13.0.0.0"
+Translate = "10.0.0.116"
 Identity = "jd"
 Contact = "alec"
 
