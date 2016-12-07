@@ -1,0 +1,34 @@
+[[Identity]]
+Name = "alec"
+PublicKey = "0cea742d473910e8274ee58f9c0a8850b11e35cbff753a199471feeeee79726f"
+SecretKey = "6216b33213fdcb4a3f324fa9145688152b8903e754cb742a4c46d94d756383ca"
+
+[[Contact]]
+Name = "alec"
+PublicKey = "0cea742d473910e8274ee58f9c0a8850b11e35cbff753a199471feeeee79726f"
+
+[[Contact]]
+Name = "jd"
+PublicKey = "0cea742d473910e8274ee58f9c0a8850b11e35cbff753a199471feeeee79726f"
+
+[[Identity]]
+Name = "jd"
+PublicKey = "0090931936f9ea1d3cddf101140851e57546952377eb05e9015b0017cf40dc51"
+SecretKey = "85b6da5d7e23650240bcb04f3e581d9f33999d05b85e65caa5173c07b5c58543"
+
+[[Remote]]
+Address = "localhost:8000"
+
+[[Listener]]
+Address = "localhost:8000"
+
+[[Tunnel]]
+Address = "12.0.0.0"
+Identity = "alec"
+Contact = "jd"
+
+[[Tunnel]]
+Address = "13.0.0.0"
+Identity = "jd"
+Contact = "alec"
+

@@ -1,0 +1,30 @@
+[[Identity]]
+Name = "aws-vpn"
+PublicKey = "9deb7f1b06a3366e0f7df1f575f54b0d09e984bf4425412460f18dfacec1cb1b"
+SecretKey = "832935e5e3445b2ee25c400c9e48641d33d41f85181d8359242312331c8f51ff"
+Route = "172.30.0.0/16"
+Peers = ["alec", "caleb"]
+
+[[Contact]]
+Name = "alec"
+PublicKey = "0cea742d473910e8274ee58f9c0a8850b11e35cbff753a199471feeeee79726f"
+
+[[Contact]]
+Name = "caleb"
+PublicKey = "bleh"
+
+[[Listener]]
+Address = ":8000"
+
+[[Tunnel]]
+Address = "11.0.0.0"
+RemoteAddress = "localhost"
+Contact = "alec"
+Identity = "aws-vpn"
+
+[[Tunnel]]
+Address = "11.0.0.1"
+Translate = "localhost"
+Contact = "caleb"
+Identity = "aws-vpn"
+
